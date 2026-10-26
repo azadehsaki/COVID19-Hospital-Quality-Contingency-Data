@@ -1,0 +1,30 @@
+rm(list=ls())
+data<-read.csv(file.choose(),sep="",header=T) #alldataQC1-7-1403.dat
+names(data)
+head(data)
+#row: rows of contingency table; Peak=1,2,3,4; age=1(<=60),2(age>60);diabet=1(no),2(yes);
+#PO2=1(<=93%),2(>93%);ARDS=1(no),2(yes);ICU=1(no),2(yes);QC=1(QC),2(NQC)
+data$SaO2=2-(data$PO2+1) #reversing the PO2 codes
+attach(data)
+fit1<-glm(death~1*log(total)+factor(peak)*QC+age*QC+diabet*QC+SaO2*QC+ARDS*QC+ICU*QC,family=poisson())
+summary(fit1)
+mse1=mean((death-as.vector(fit1$fitted))**2)
+mse1
+fit2<-glm(death/total~factor(peak)*QC+age*QC+diabet*QC+SaO2*QC+ARDS*QC+ICU*QC,family=binomial(),weights = total)
+summary(fit2)
+mse2=mean((death-as.vector(fit2$fitted)*total)**2)
+mse2
+
+x1=y1=1:700
+sunflowerplot(death,as.vector(fit1$fitted),col="blue",ylab="Predicted of Model 1",xlab="Observed Deaths")
+lines(y1~x1,col="blue")
+pred1=as.vector(fit1$fitted)
+lm1=lm(pred1~death)
+summary(lm1)
+pred2=as.vector(fit2$fitted)*total
+lm2=lm(pred2~death)
+summary(lm2)
+sunflowerplot(death,as.vector(fit2$fitted)*total,xlim=c(0,700),ylim=c(0,700), col="blue",ylab="Predicted Values of Model 2",xlab="Observed Deaths")
+lines(y1~x1)
+write.csv(cbind(death,round(pred1,0),round(pred2,0)),"E:/papers/QC/result1-7-1403/pred.csv")
+
